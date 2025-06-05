@@ -1,0 +1,14 @@
+
+langchain 
+
+chromadb
+langchain-community
+
+python-dotenv
+langchain_ollama
+streamlit
+streamlit_chat
+pandas
+langchain_chroma
+scikit-learn
+pydantic
