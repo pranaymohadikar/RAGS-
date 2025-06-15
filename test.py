@@ -1,50 +1,38 @@
-
-#llms got older and now we should use chat models
-
-# from langchain_ollama import OllamaLLM
-
-# llm = OllamaLLM(model = "llama3.2")
-
-
-# result = llm.invoke("what is the capital of India?")
-
-# print(result)
+from langchain_experimental.agents import create_csv_agent
+from langchain_openai import ChatOpenAI 
+from dotenv import load_dotenv
+import os
+import streamlit as st
+from langchain_ollama import ChatOllama
 
 
-#now for chat models
+def main():
+    # load_dotenv()
 
-# from langchain_ollama import ChatOllama
+    # # Load the OpenAI API key from the environment variable
+    # if os.getenv("OPENAI_API_KEY") is None or os.getenv("OPENAI_API_KEY") == "":
+    #     print("OPENAI_API_KEY is not set")
+    #     exit(1)
+    # else:
+    #     print("OPENAI_API_KEY is set")
+    #llm = ChatOllama(model="llama3.2")
 
-# model = ChatOllama(model = "llama3.2", temperature = 1.8, max_completion_tokens = 100)#temperature is the parameter that control the cretivity of the result. 0-->lowerrst creativity(factual answers) and 2 is the hgh form of creativity(strorytellin and all)
+    st.set_page_config(page_title="Ask your CSV")
+    st.header("Ask your CSV 📈")
 
-# #max tokens limit the words for the results and help to reduce the cost of closed source model apis'
+    csv_file = st.file_uploader("Upload a CSV file", type="csv")
+    if csv_file is not None:
 
-# result = model.invoke("suggest me a poem on rain in 5 lines")
+        agent = create_csv_agent(
+            ChatOllama(model = "llama3.2", verbose=True), csv_file, verbose =True, allow_dangerous_code=True, handle_parsing_errors=True
+        )
 
-# print(result.content)
+        user_question = st.text_input("Ask a question about your CSV: ")
+
+        if user_question is not None and user_question != "":
+            with st.spinner(text="In progress..."):
+                st.write(agent.run(user_question))
 
 
-#now fofr embeddings
-
-# from langchain_ollama import OllamaEmbeddings
-
-# embedding = OllamaEmbeddings(model = "nomic-embed-text")# it denotes that how much context you want to capture. more the dim more the capture of context it is not needed inn ollama but in open ai
-
-# result = embedding.embed_query("delhi is capital of india")
-
-# print(result)
-
-#can be used for the docs also
-
-from langchain_ollama import OllamaEmbeddings
-
-embedding = OllamaEmbeddings(model = "nomic-embed-text")# it denotes that how much context you want to capture. more the dim more the capture of context it is not needed inn ollama but in open ai
-
-documents = [
-    "delhi is capital of india",
-    "im a good boy"
-]
-
-result = embedding.embed_documents(documents)
-
-print(result)
+if __name__ == "__main__":
+    main()

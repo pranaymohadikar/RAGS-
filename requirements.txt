@@ -1,9 +1,7 @@
 
 langchain 
-
 chromadb
 langchain-community
-
 python-dotenv
 langchain_ollama
 streamlit
@@ -12,3 +10,6 @@ pandas
 langchain_chroma
 scikit-learn
 pydantic
+langchain-experimental
+tabulate
+faiss-cpu
