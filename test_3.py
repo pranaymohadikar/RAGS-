@@ -47,7 +47,7 @@ def get_conversational_chain():
     
     Answer:
     """
-    llm = ChatOllama(model="llama3.2")
+    llm = ChatOllama(model="gemma3")
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
     return chain
@@ -69,7 +69,7 @@ def find_peak_dates_and_summary(csv_docs, top_n=1):
         messages_df = all_data[all_data[date_col] == date]
         documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-        llm = ChatOllama(model="llama3.2")
+        llm = ChatOllama(model="gemma3")
         prompt_template = """
         You are given a list of user messages from a specific date.
         Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
@@ -105,7 +105,7 @@ def get_date_summary( csv_docs):
             return "no messages found"
         documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-        llm = ChatOllama(model = "llama3.2")
+        llm = ChatOllama(model = "gemma3")
         prompt_template = """
         You are given a list of user messages from a specific date.
         Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
@@ -122,7 +122,7 @@ def get_date_summary( csv_docs):
 
 #=================================Added function for the particular date for the summary added on 16-6-25========================================
 # -------------------------------
-# Handle user input & integrate other functions to handle things
+# Handle user input & integrate metadata + peak date detection
 # -------------------------------
 def user_input(user_question, csv_docs=None):
     peak_keywords = ["peak date", "top date", "most messages", "highest message", "most active day"]
@@ -168,7 +168,7 @@ def user_input(user_question, csv_docs=None):
                 date = date.strip()
                 if not pd.to_datetime(date, errors="coerce"):
                     return "Please provide a valid date in the format YYYY-MM-DD."
-                #date = pd.to_datetime(date, errors="coerce").date()
+                date = pd.to_datetime(date, errors="coerce").date()
                 
                 daily_summary = get_date_summary(csv_docs)
                 if not daily_summary:
