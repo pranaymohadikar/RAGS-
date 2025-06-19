@@ -1,5 +1,3 @@
-
-
 import pandas as pd
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -9,13 +7,16 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from langchain.docstore.document import Document
 from dateutil import parser
-# -------------------------------
+
+
+##==========================converted for the excel files on 18-6-25========================================== 
+# # -------------------------------
 # Load and prepare documents with metadata
 # -------------------------------
-def get_documents_from_csv(csv_docs):
+def get_documents_from_excel(excel_docs):
     documents = []
-    for csv in csv_docs:
-        df = pd.read_csv(csv)
+    for excel in excel_docs:
+        df = pd.read_excel(excel)
         for _, row in df.iterrows():
             content = str(row.get("Message", ""))
             metadata = {
@@ -55,8 +56,8 @@ def get_conversational_chain():
 # -------------------------------
 # Find peak message dates and summarize them
 # -------------------------------
-def find_peak_dates_and_summary(csv_docs, top_n=1):
-    all_data = pd.concat([pd.read_csv(csv) for csv in csv_docs], ignore_index=True)
+def find_peak_dates_and_summary(excel_docs, top_n=1):
+    all_data = pd.concat([pd.read_excel(excel) for excel in excel_docs], ignore_index=True)
     date_col = "Created On (Posted On)"
 
     if date_col not in all_data.columns or "Message" not in all_data.columns:
@@ -88,47 +89,91 @@ def find_peak_dates_and_summary(csv_docs, top_n=1):
     return summaries
 
 #=================================Added function for the particular date for the summary added on 16-6-25========================================
-def get_date_summary( csv_docs):
-    all_data = pd.concat([pd.read_csv(csv) for csv in csv_docs], ignore_index=True)
+def get_date_summary( date, excel_docs):
+    all_data = pd.concat([pd.read_excel(excel) for excel in excel_docs], ignore_index=True)
     date_col = "Created On (Posted On)"
     if date_col not in all_data.columns or "Message" not in all_data.columns:
         return "No data available for the specified date."
-    #date = pd.to_datetime(date, errors="coerce").date()
-    date_counts = all_data[date_col]
+    date = pd.to_datetime(date, errors="coerce").date()
+    #date_counts = all_data[date_col]
     #print(date_counts)
-    for date in date_counts:
+    print(date)
+
+####============================================need to remove this for loop 18-6-25==============================    
+    #for date in date_counts:
         #print(date)
-        
-        messages_df = all_data[all_data[date_col] == date]
-        print(len(messages_df))
-        if messages_df.empty:
-            return "no messages found"
-        documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
+####============================================need to remove this for loop 18-6-25==============================            
+    messages_df = all_data[all_data[date_col] == str(date)]  #just needed to cconvert the date to string
+    print(len(messages_df))
+    #print(date)
+    if messages_df.empty:
+        return "no messages found"
+    documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-        llm = ChatOllama(model = "gemma3")
-        prompt_template = """
-        You are given a list of user messages from a specific date.
-        Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
-        Messages: {context}
+    llm = ChatOllama(model = "gemma3")
+    prompt_template = """
+    You are given a list of user messages from a specific date.
+    Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
+    Messages: {context}
 
-        Summary: 
-    """
+    Summary: 
+"""
 
-        prompt = PromptTemplate(template = prompt_template, input_variables=["context"])
-        chain = load_qa_chain(llm, chain_type="stuff", prompt = prompt)
-        summary = chain({"input_documents": documents}, return_only_outputs=True)['output_text']
-        return summary if summary else "no summary found"
+    prompt = PromptTemplate(template = prompt_template, input_variables=["context"])
+    chain = load_qa_chain(llm, chain_type="stuff", prompt = prompt)
+    summary = chain({"input_documents": documents}, return_only_outputs=True)['output_text']
+    return summary if summary else "no summary found"
 
 
-#=================================Added function for the particular date for the summary added on 16-6-25========================================
+#=================================Added function for the summarization for the date range for the summary added on 19-6-25========================================
+
+
+def get_date_range_summary( start_date, end_date, excel_docs):
+    all_data = pd.concat([pd.read_excel(excel) for excel in excel_docs], ignore_index=True)
+    date_col = "Created On (Posted On)"
+    if date_col not in all_data.columns or "Message" not in all_data.columns:
+        return "No data available for the specified date."
+    start_date = pd.to_datetime(start_date, errors="coerce").date()
+    end_date = pd.to_datetime(end_date, errors="coerce").date()
+    #date_counts = all_data[date_col]
+    #print(date_counts)
+    print(start_date, end_date)
+
+    masking = (all_data[date_col] >= str(start_date)) & (all_data[date_col] <= str(end_date))
+    messages_df =all_data[masking]
+    #messages_df = all_data[all_data[date_col] == str(date)]  #just needed to cconvert the date to string
+    print(len(messages_df))
+    #print(date)
+    if messages_df.empty:
+        return "no messages found"
+    documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
+
+    llm = ChatOllama(model = "gemma3")
+    prompt_template = """
+    You are given a list of user messages from a specific date.
+    Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
+    Messages: {context}
+
+    Summary: 
+"""
+
+    prompt = PromptTemplate(template = prompt_template, input_variables=["context"])
+    chain = load_qa_chain(llm, chain_type="stuff", prompt = prompt)
+    summary = chain({"input_documents": documents}, return_only_outputs=True)['output_text']
+    return summary if summary else "no summary found"
+
+
+#=================================Added function for the summarization for the date range for the summary added on 19-6-25========================================
+
+
 # -------------------------------
-# Handle user input & integrate metadata + peak date detection
+# Handle user input  + peak date detection+ other things
 # -------------------------------
-def user_input(user_question, csv_docs=None):
+def user_input(user_question, excel_docs=None):
     peak_keywords = ["peak date", "top date", "most messages", "highest message", "most active day"]
     if any(keyword in user_question.lower() for keyword in peak_keywords):
-        if csv_docs:
-            peaks = find_peak_dates_and_summary(csv_docs)
+        if excel_docs:
+            peaks = find_peak_dates_and_summary(excel_docs)
             if not peaks:
                 return "Couldn't find peak dates due to missing data."
             response = "**Peak Dates with Highest Message Counts:**\n\n"
@@ -136,7 +181,7 @@ def user_input(user_question, csv_docs=None):
                 response += f"**Date:** {date}\n **Count:** {count}\n **Summary:** {summary}\n\n---\n"
             return response
         else:
-            return "Please upload CSV files first to analyze peak dates."
+            return "Please upload excel files first to analyze peak dates."
         
     
 #==============================Added logic to get the date wise summary on 16-6-25========================================
@@ -145,40 +190,59 @@ def user_input(user_question, csv_docs=None):
     "events on", "updates on", "daily summary", "day summary",
     "what happened on", "highlights of", "notes from", "log for",
     "activity on", "meeting notes", "status update", "timeline for"]
-    if any(keyword in user_question.lower() for keyword in date_summary_keywords):
-    #     if csv_docs:
-    # # Extract date from user question
-    #         try:
-    #     # Extract the last few words and attempt to parse them as a date
-    #             words = user_question.lower().split()
-    #     # Try parsing using full question (or a fallback slice of last 3 words)
-    #             date_str = " ".join(words[-3:])  # e.g., "31st May", "May 31", "June 1st"
-    #             date = parser.parse(date_str, fuzzy=True).date()
-    #         except Exception:
-    #             return "Please provide a valid date, e.g., 'May 31' or '31st May'."
+#==============================New logic to get the date wise summary on 18-6-25========================================  
 
-    #         daily_summary = get_date_summary(date, csv_docs)
-    #         if not daily_summary:
-    #             return f"Couldn't find messages for the specified date: {date}."
+    if any(keyword in user_question.lower() for keyword in date_summary_keywords):
+        if excel_docs:
+    # Extract date from user question
+            try:
+        # Extract the last few words and attempt to parse them as a date
+                words = user_question.lower().split()
+        # Try parsing using full question (or a fallback slice of last 3 words)
+                date_str = " ".join(words[-3:])  # e.g., "31st May", "May 31", "June 1st"
+                date = parser.parse(date_str, fuzzy=True).date()
+                #print(date)
+            except Exception:
+                return "Please provide a valid date, e.g., 'May 31' or '31st May'."
+            if date:
+                daily_summary = get_date_summary( date, excel_docs)
+            if not daily_summary:
+                return f"Couldn't find messages for the specified date: {date}."
     
-    #         response = f"**Summary of {date.strftime('%B %d, %Y')}**\n\n{daily_summary}\n\n---\n"
-    #         return response
-            if csv_docs:
-                date =  user_question.split()[-1]
-                date = date.strip()
-                if not pd.to_datetime(date, errors="coerce"):
-                    return "Please provide a valid date in the format YYYY-MM-DD."
-                date = pd.to_datetime(date, errors="coerce").date()
+            response = f"**Summary of {date.strftime('%B %d, %Y')}**\n\n{daily_summary}\n\n---\n"
+            return response
+        
+#==============================New logic to get the date wise summary on 18-6-25======================================== 
+
+#======================================new logic to get summarization of rangewise summary on 19-6-25============================
+
+
+
+
+
+#======================================new logic to get summarization of rangewise summary on 19-6-25============================
+
+      
+######==============================Obsolete logic to get the date wise summary on 18-6-25========================================        
+            # if csv_docs:
+            #     date =  user_question.split()[-1]
+            #     date = date.strip()
+            #     if not pd.to_datetime(date, errors="coerce"):
+            #         return "Please provide a valid date in the format YYYY-MM-DD."
+            #     date = pd.to_datetime(date, errors="coerce").date()
                 
-                daily_summary = get_date_summary(csv_docs)
-                if not daily_summary:
-                    return f"Couldn't find the messages for the specified date."
-                response = f"**Summary of {date}**\n\n"
-                for  summary in daily_summary:
-                    response = f"**Summary:** {summary}\n\n---\n"
-                return response
-            else:
-                return "Please upload CSV files first to analyze day."
+            #     daily_summary = get_date_summary(csv_docs)
+            #     if not daily_summary:
+            #         return f"Couldn't find the messages for the specified date."
+            #     response = f"**Summary of {date}**\n\n"
+            #     for  summary in daily_summary:
+            #         response = f"**Summary:** {summary}\n\n---\n"
+            #     return response
+            # else:
+            #     return "Please upload CSV files first to analyze day."
+######==============================Obsolete logic to get the date wise summary on 18-6-25========================================  
+
+
             
  #==============================Added logic to get the date wise summary on 16-6-25========================================       
 
@@ -201,26 +265,26 @@ def user_input(user_question, csv_docs=None):
 # Streamlit App
 # -------------------------------
 def main():
-    st.set_page_config("Chat CSV")
-    st.header("Chat with CSV using Ollama")
+    st.set_page_config("Chat Excel")
+    st.header("Chat with Excel using Ollama")
 
     if "history" not in st.session_state:
         st.session_state.history = []
 
-    csv_docs = st.file_uploader("Upload your CSV Files", accept_multiple_files=True)
+    excel_docs = st.file_uploader("Upload your excel Files", accept_multiple_files=True)
 
-    if st.button("Process CSV Files"):
-        if csv_docs:
-            with st.spinner("Processing CSV..."):
-                documents = get_documents_from_csv(csv_docs)
+    if st.button("Process Excel Files"):
+        if excel_docs:
+            with st.spinner("Processing excel..."):
+                documents = get_documents_from_excel(excel_docs)
                 get_vector_store_from_documents(documents)
                 st.success(" CSV processed and vector store created!")
 
-    user_question = st.text_input(" Ask a Question from the CSV Files:")
+    user_question = st.text_input(" Ask a Question from the Excel Files:")
 
     if user_question:
         st.session_state.history.append(f" **User:** {user_question}")
-        answer = user_input(user_question, csv_docs=csv_docs)
+        answer = user_input(user_question, excel_docs=excel_docs)
         st.session_state.history.append(f" **Bot:** {answer}")
 
     for message in st.session_state.history:
