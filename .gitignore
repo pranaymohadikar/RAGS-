@@ -2,3 +2,5 @@ venv/
 __pycache__/
 .vscode/
 .env
+Pranay_resume_2024.pdf
+.faiss_index

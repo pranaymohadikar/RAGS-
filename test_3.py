@@ -48,7 +48,7 @@ def get_conversational_chain():
     
     Answer:
     """
-    llm = ChatOllama(model="gemma3")
+    llm = ChatOllama(model="llama3.2")
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
     return chain
@@ -70,7 +70,7 @@ def find_peak_dates_and_summary(excel_docs, top_n=1):
         messages_df = all_data[all_data[date_col] == date]
         documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-        llm = ChatOllama(model="gemma3")
+        llm = ChatOllama(model="llama3.2")
         prompt_template = """
         You are given a list of user messages from a specific date.
         Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
@@ -110,7 +110,7 @@ def get_date_summary( date, excel_docs):
         return "no messages found"
     documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-    llm = ChatOllama(model = "gemma3")
+    llm = ChatOllama(model = "llama3.2")
     prompt_template = """
     You are given a list of user messages from a specific date.
     Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
@@ -137,18 +137,19 @@ def get_date_range_summary( start_date, end_date, excel_docs):
     end_date = pd.to_datetime(end_date, errors="coerce").date()
     #date_counts = all_data[date_col]
     #print(date_counts)
-    print(start_date, end_date)
+    #print(start_date, end_date)
 
     masking = (all_data[date_col] >= str(start_date)) & (all_data[date_col] <= str(end_date))
     messages_df =all_data[masking]
     #messages_df = all_data[all_data[date_col] == str(date)]  #just needed to cconvert the date to string
-    print(len(messages_df))
+    #print(len(messages_df))
     #print(date)
+    print(start_date, end_date)
     if messages_df.empty:
         return "no messages found"
     documents = [Document(page_content=msg) for msg in messages_df['Message'].astype(str).tolist()]
 
-    llm = ChatOllama(model = "gemma3")
+    llm = ChatOllama(model = "llama3.2")
     prompt_template = """
     You are given a list of user messages from a specific date.
     Your task is to summarize the key themes, topics, and sentiments expressed provide me a consice summary of the messages.
@@ -216,9 +217,40 @@ def user_input(user_question, excel_docs=None):
 
 #======================================new logic to get summarization of rangewise summary on 19-6-25============================
 
+    date_range_summary_keywords = [
+    "summary from", "summary between", "recap from", "recap between",
+    "summary for the week", "summary for the month", 
+    "summarize messages between", "summarize feedback from", 
+    "feedback from", "update from", "insights between", "activity from", 
+    "events between", "review from", "data between", 
+    "summarize last week", "summarize last month", 
+    "overview from", "overview between", "messages from"
+    ]
 
 
+    if any(keyword in user_question.lower() for keyword in date_range_summary_keywords):
+        if excel_docs:
+            try:
+                #extract the last few words and attempt TO PARSE THEN AS AS DATE
+                words = user_question.lower().split()
+                date_str = " ".join(words[-5:])
+                date_range = date_str.split("to") if "to" in date_str else date_str.split("between")
+                start_date = parser.parse(date_range[0].strip(), fuzzy = True).date()
+                end_date = parser.parse(date_range[1].strip(), fuzzy = True).date()
+                print(start_date, end_date)
 
+                if start_date and end_date:
+                    range_summary = get_date_range_summary(start_date= start_date, end_date=end_date, excel_docs=excel_docs)
+                    if not range_summary:
+                        return f"Couldn't find messages for the specified date range: {start_date} to {end_date}."
+
+            except Exception as e:
+                return "Please provide a valid date range, e.g., 'from May 1 to May 31' or 'between June 1 and June 7'."
+            
+            
+    
+            response = f"**Summary between {start_date.strftime('%B %d, %Y')} and {end_date.strftime('%B %d, %Y')}**\n\n{range_summary}\n\n---\n"
+            return response
 
 #======================================new logic to get summarization of rangewise summary on 19-6-25============================
 
