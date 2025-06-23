@@ -358,3 +358,66 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    
+    
+    
+def get_date_summary(user_input_date, excel_docs, user_year=None):
+    all_data = pd.concat([pd.read_excel(excel) for excel in excel_docs], ignore_index=True)
+    date_col = "Created On (Posted On)"
+
+    if date_col not in all_data.columns or "Message" not in all_data.columns:
+        return "No data available."
+
+    # Ensure datetime format
+    all_data[date_col] = pd.to_datetime(all_data[date_col], errors="coerce")
+    all_data = all_data.dropna(subset=[date_col])
+
+    # Parse user input date (e.g. "31 May")
+    parsed_date = pd.to_datetime(user_input_date, errors="coerce", dayfirst=True)
+    if pd.isna(parsed_date):
+        return "❌ Could not understand the date. Please use a format like '31 May'."
+
+    target_day = parsed_date.day
+    target_month = parsed_date.month
+
+    # Add helper columns
+    all_data["day"] = all_data[date_col].dt.day
+    all_data["month"] = all_data[date_col].dt.month
+    all_data["year"] = all_data[date_col].dt.year
+
+    # Filter all matching day/month
+    day_month_df = all_data[
+        (all_data["day"] == target_day) &
+        (all_data["month"] == target_month)
+    ]
+
+    if day_month_df.empty:
+        return f"❌ No messages found on {parsed_date.strftime('%d %B')} in any year."
+
+    available_years = sorted(day_month_df["year"].unique())
+
+    # Determine which year to use
+    if user_year:
+        try:
+            user_year = int(user_year)
+        except:
+            return "❌ Invalid year provided."
+
+        if user_year not in available_years:
+            return f"⚠️ No messages found on {parsed_date.strftime('%d %B')} in {user_year}."
+
+        year_to_use = user_year
+    else:
+        # Default to the latest year
+        year_to_use = max(available_years)
+
+    # Final filtered messages
+    messages_df = day_month_df[day_month_df["year"] == year_to_use]
+    response = f"📅 Found {len(messages_df)} messages on {parsed_date.strftime('%d %B')} {year_to_use}."
+
+    # Show sample messages
+    preview = messages_df["Message"].head(5).tolist()
+    response += "\n\n📝 Top messages:\n" + "\n".join([f"- {msg}" for msg in preview])
+
+    return response
